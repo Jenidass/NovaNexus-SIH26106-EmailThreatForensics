@@ -1,0 +1,261 @@
+import type {
+  AnalysisStep,
+  InvestigationResult,
+  IOC,
+  UploadedFile,
+} from '../types/investigation';
+
+// The 6-step pipeline shown during "processing"
+export const buildAnalysisSteps = (): AnalysisStep[] => [
+  { id: 'parse', label: 'Parse Email', detail: 'Reading MIME structure and extracting headers', status: 'pending' },
+  { id: 'headers', label: 'Analyze Headers', detail: 'Checking routing hops and header anomalies', status: 'pending' },
+  { id: 'auth', label: 'Check Authentication', detail: 'Validating SPF, DKIM and DMARC records', status: 'pending' },
+  { id: 'indicators', label: 'Extract Indicators', detail: 'Pulling URLs, attachments, hashes and IPs', status: 'pending' },
+  { id: 'threat', label: 'Threat Analysis', detail: 'Scoring risk against known attack patterns', status: 'pending' },
+  { id: 'report', label: 'Generate Report', detail: 'Compiling evidence and final verdict', status: 'pending' },
+];
+
+// Pick one of a few canned scenarios so the demo feels alive across re-uploads
+const scenarios: Omit<InvestigationResult, 'id' | 'fileName' | 'completedAt'>[] = [
+  {
+    metadata: {
+      subject: 'Urgent: Verify Your Account Within 24 Hours',
+      from: 'security-alert@paypa1-support.com',
+      to: ['finance.team@company.org'],
+      date: new Date().toISOString(),
+      messageId: '<8f2b1c-alert-3391@paypa1-support.com>',
+      returnPath: 'bounce@mail-relay-node7.ru',
+      spf: 'fail',
+      dkim: 'fail',
+      dmarc: 'fail',
+      attachmentCount: 1,
+      hopCount: 7,
+    },
+    threatScore: {
+      overall: 92,
+      level: 'critical',
+      headerRisk: 88,
+      contentRisk: 95,
+      linkRisk: 97,
+      attachmentRisk: 80,
+      reputationRisk: 91,
+    },
+    sender: {
+      displayName: 'PayPal Security Team',
+      address: 'security-alert@paypa1-support.com',
+      domain: 'paypa1-support.com',
+      domainAgeDays: 14,
+      spoofed: true,
+      freeMailProvider: false,
+      previousReports: 236,
+      organization: 'Unregistered / Bulletproof hosting',
+    },
+    network: {
+      ip: '185.220.101.47',
+      country: 'Romania',
+      city: 'Bucharest',
+      isp: 'M247 Europe SRL',
+      asn: 'AS9009',
+      latitude: 44.4268,
+      longitude: 26.1025,
+      blacklisted: true,
+      vpnOrProxy: true,
+    },
+    suspiciousLinks: [
+      {
+        id: 'lnk-1',
+        url: 'hxxp://paypa1-verify-account[.]com/secure/login',
+        displayText: 'Verify My Account',
+        riskLevel: 'critical',
+        reason: 'Homoglyph domain mimicking paypal.com',
+        redirectsTo: 'hxxp://185.220.101.47/collect.php',
+      },
+      {
+        id: 'lnk-2',
+        url: 'hxxp://bit[.]ly/3xQ9fRt',
+        displayText: 'Click here',
+        riskLevel: 'high',
+        reason: 'Shortened URL masking final destination',
+      },
+    ],
+    suspiciousAttachments: [
+      {
+        id: 'att-1',
+        fileName: 'Account_Statement.html',
+        fileType: 'text/html',
+        sizeKb: 42,
+        riskLevel: 'critical',
+        reason: 'HTML file with embedded credential-harvesting form',
+        hash: 'a3f5e8c1b9d24f7e6a1c8b3d5e9f2a47',
+      },
+    ],
+    iocs: [
+      { id: 'ioc-1', type: 'domain', value: 'paypa1-support.com', confidence: 96, source: 'Header analysis', firstSeen: '2026-08-14' },
+      { id: 'ioc-2', type: 'ip', value: '185.220.101.47', confidence: 94, source: 'Network trace', firstSeen: '2026-08-20' },
+      { id: 'ioc-3', type: 'url', value: 'hxxp://paypa1-verify-account[.]com', confidence: 91, source: 'Link extraction', firstSeen: '2026-08-25' },
+      { id: 'ioc-4', type: 'hash', value: 'a3f5e8c1b9d24f7e6a1c8b3d5e9f2a47', confidence: 89, source: 'Attachment scan', firstSeen: '2026-08-27' },
+      { id: 'ioc-5', type: 'email', value: 'security-alert@paypa1-support.com', confidence: 97, source: 'Sender analysis', firstSeen: '2026-08-27' },
+    ],
+    evidence: [
+      { id: 'ev-1', title: 'Domain typosquatting detected', description: 'Sender domain "paypa1-support.com" uses a digit "1" in place of "l" to imitate paypal.com', severity: 'critical', category: 'header' },
+      { id: 'ev-2', title: 'Authentication fully failed', description: 'SPF, DKIM and DMARC all failed — the message did not originate from an authorized mail server', severity: 'critical', category: 'authentication' },
+      { id: 'ev-3', title: 'Credential harvesting page linked', description: 'Primary link redirects through a blacklisted IP to a fake login form', severity: 'critical', category: 'link' },
+      { id: 'ev-4', title: 'Malicious HTML attachment', description: 'Attachment contains an embedded form that posts data to an external collector script', severity: 'high', category: 'attachment' },
+      { id: 'ev-5', title: 'Sender IP flagged on threat feeds', description: 'Originating IP appears on 4 active reputation blacklists and routes through a known VPN exit node', severity: 'high', category: 'network' },
+    ],
+    verdict: 'Confirmed Phishing — Credential Harvesting Campaign',
+    recommendedAction: 'Quarantine immediately, block sender domain and IP, and notify all recipients who received this message.',
+  },
+  {
+    metadata: {
+      subject: 'Q3 Vendor Invoice — Action Required',
+      from: 'billing@swift-logix-partners.net',
+      to: ['accounts.payable@company.org'],
+      date: new Date().toISOString(),
+      messageId: '<inv-q3-2291@swift-logix-partners.net>',
+      returnPath: 'billing@swift-logix-partners.net',
+      spf: 'neutral',
+      dkim: 'fail',
+      dmarc: 'neutral',
+      attachmentCount: 1,
+      hopCount: 4,
+    },
+    threatScore: {
+      overall: 61,
+      level: 'medium',
+      headerRisk: 55,
+      contentRisk: 48,
+      linkRisk: 40,
+      attachmentRisk: 72,
+      reputationRisk: 58,
+    },
+    sender: {
+      displayName: 'Swift Logix Partners Billing',
+      address: 'billing@swift-logix-partners.net',
+      domain: 'swift-logix-partners.net',
+      domainAgeDays: 96,
+      spoofed: false,
+      freeMailProvider: false,
+      previousReports: 12,
+      organization: 'Recently registered logistics reseller',
+    },
+    network: {
+      ip: '103.98.212.55',
+      country: 'Vietnam',
+      city: 'Hanoi',
+      isp: 'VNPT Corp',
+      asn: 'AS45899',
+      latitude: 21.0278,
+      longitude: 105.8342,
+      blacklisted: false,
+      vpnOrProxy: false,
+    },
+    suspiciousLinks: [
+      {
+        id: 'lnk-1',
+        url: 'hxxp://swift-logix-partners[.]net/invoice/view?id=8821',
+        displayText: 'View Invoice',
+        riskLevel: 'medium',
+        reason: 'Domain registered under 100 days ago, unusual for an established vendor',
+      },
+    ],
+    suspiciousAttachments: [
+      {
+        id: 'att-1',
+        fileName: 'Invoice_Q3_8821.xlsm',
+        fileType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
+        sizeKb: 318,
+        riskLevel: 'high',
+        reason: 'Macro-enabled spreadsheet, common vector for dropper payloads',
+        hash: '7c1e4d9a2f6b8c3e5a9d1f7b4c8e2a63',
+      },
+    ],
+    iocs: [
+      { id: 'ioc-1', type: 'domain', value: 'swift-logix-partners.net', confidence: 62, source: 'Header analysis', firstSeen: '2026-05-18' },
+      { id: 'ioc-2', type: 'ip', value: '103.98.212.55', confidence: 54, source: 'Network trace', firstSeen: '2026-08-27' },
+      { id: 'ioc-3', type: 'hash', value: '7c1e4d9a2f6b8c3e5a9d1f7b4c8e2a63', confidence: 71, source: 'Attachment scan', firstSeen: '2026-08-27' },
+    ],
+    evidence: [
+      { id: 'ev-1', title: 'DKIM signature failed', description: 'The DKIM signature could not be verified against the sending domain\u2019s public key', severity: 'medium', category: 'authentication' },
+      { id: 'ev-2', title: 'Macro-enabled attachment', description: 'Spreadsheet contains VBA macros that are not required for a standard invoice', severity: 'high', category: 'attachment' },
+      { id: 'ev-3', title: 'Newly registered sending domain', description: 'Domain WHOIS record shows registration under 100 days ago', severity: 'medium', category: 'network' },
+    ],
+    verdict: 'Suspicious — Likely Business Email Compromise Attempt',
+    recommendedAction: 'Hold attachment in sandbox, verify vendor identity through a separate channel before any payment action.',
+  },
+  {
+    metadata: {
+      subject: 'Your monthly newsletter is here',
+      from: 'newsletter@techweekly.io',
+      to: ['subscriber@company.org'],
+      date: new Date().toISOString(),
+      messageId: '<nl-aug-2026@techweekly.io>',
+      returnPath: 'bounce@techweekly.io',
+      spf: 'pass',
+      dkim: 'pass',
+      dmarc: 'pass',
+      attachmentCount: 0,
+      hopCount: 3,
+    },
+    threatScore: {
+      overall: 8,
+      level: 'clean',
+      headerRisk: 5,
+      contentRisk: 6,
+      linkRisk: 10,
+      attachmentRisk: 0,
+      reputationRisk: 4,
+    },
+    sender: {
+      displayName: 'Tech Weekly',
+      address: 'newsletter@techweekly.io',
+      domain: 'techweekly.io',
+      domainAgeDays: 1840,
+      spoofed: false,
+      freeMailProvider: false,
+      previousReports: 0,
+      organization: 'Tech Weekly Media Inc.',
+    },
+    network: {
+      ip: '52.34.19.201',
+      country: 'United States',
+      city: 'Portland',
+      isp: 'Amazon SES',
+      asn: 'AS16509',
+      latitude: 45.5152,
+      longitude: -122.6784,
+      blacklisted: false,
+      vpnOrProxy: false,
+    },
+    suspiciousLinks: [],
+    suspiciousAttachments: [],
+    iocs: [],
+    evidence: [
+      { id: 'ev-1', title: 'Full authentication pass', description: 'SPF, DKIM and DMARC all passed with alignment to the sending domain', severity: 'clean', category: 'authentication' },
+      { id: 'ev-2', title: 'Established sender reputation', description: 'Domain has been active for over 5 years with zero prior abuse reports', severity: 'clean', category: 'network' },
+    ],
+    verdict: 'Clean — No Threats Detected',
+    recommendedAction: 'No action required. Message can be safely delivered to the inbox.',
+  },
+];
+
+export const generateInvestigationResult = (
+  file: UploadedFile
+): InvestigationResult => {
+  const scenario = scenarios[0];
+
+  return {
+    id: `inv-${file.id}`,
+    fileName: file.name,
+    completedAt: new Date().toISOString(),
+    ...scenario,
+  };
+};
+
+export const iocTypeLabel: Record<IOC['type'], string> = {
+  ip: 'IP Address',
+  domain: 'Domain',
+  url: 'URL',
+  hash: 'File Hash',
+  email: 'Email Address',
+};

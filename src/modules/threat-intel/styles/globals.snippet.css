@@ -1,0 +1,31 @@
+/**
+ * Optional global styles for the Nova Nexus SOC theme.
+ * Merge into your host app's global stylesheet (the one that already
+ * has @tailwind base/components/utilities) — not meant to be imported
+ * standalone.
+ */
+
+/* Optional: self-hosted or Google Fonts import for the SOC look.
+   Skip this if your host app already sets its own type system. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+html,
+body {
+  background-color: #040810;
+}
+
+/* Subtle scrollbar styling that matches the dark navy theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #040810;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}

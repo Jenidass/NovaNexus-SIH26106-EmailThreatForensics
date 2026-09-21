@@ -1,0 +1,19 @@
+/**
+ * SentinelTrace's original src/index.css applied its background, font,
+ * and text-color to the `body` selector globally. In a multi-module app
+ * that would leak onto the Dashboard / Threat-Intel / New-Investigation
+ * routes too. The values below are copied verbatim from that file and
+ * re-targeted to a scoped class instead, so the SentinelTrace route looks
+ * pixel-identical to the original while every other route is unaffected.
+ * Font import, scrollbar, selection, and focus-ring rules ARE safe to
+ * keep global (all four modules use the same Inter/JetBrains Mono stack
+ * and similar dark-mode scrollbar styling) — see src/styles/root.css.
+ */
+.sentinel-trace-scope {
+  background-color: #05080A;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(45, 212, 191, 0.06), transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(240, 68, 56, 0.05), transparent 45%);
+  color: #E4EDEF;
+  min-height: 100%;
+}

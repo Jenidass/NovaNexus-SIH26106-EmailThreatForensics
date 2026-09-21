@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Intentionally NOT setting `body { background-color / background-image }`
+  here. All four modules originally set body-level (or app-shell-level)
+  backgrounds with DIFFERENT colors:
+    - dashboard          #070B14  (set on Dashboard.tsx's own root div — OK, self-scoped)
+    - threat-intel        #040810 (set on ThreatIntelligenceModule.tsx's own root div — OK, self-scoped)
+    - new-investigation   #0a0e17 / var(--nx-bg) (was on the demo App.tsx shell — reproduced in routes/NewInvestigationRoute.tsx)
+    - sentineltrace       #05080A + radial gradients (was global `body` — reproduced, scoped, in
+                            modules/sentinel-trace/styles/scoped-background.css)
+  Setting a global body background here would either get overridden
+  unpredictably by import order, or bleed the wrong module's color into
+  the other three routes. See INTEGRATION_REPORT.md for details.
+*/
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+/* Scrollbar styling — values are near-identical across all four originals
+   (dark navy track, slightly lighter thumb); kept as one shared rule
+   instead of four competing ones. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e293b transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #1e293b;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #334155;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.3);
+}
+
+:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
